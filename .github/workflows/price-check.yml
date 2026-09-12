@@ -1,0 +1,49 @@
+name: Casio price check
+
+on:
+  schedule:
+    - cron: "3,18,33,48 * * * *" # every 15 min at :03, :18, :33, :48 (UTC), off the busy :00/:30 marks
+  workflow_dispatch: # "Run workflow" button for manual runs
+
+concurrency:
+  group: price-check
+  cancel-in-progress: false # if GitHub starts one late, the next waits instead of scraping at the same time
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14 # stay inside the 15-min gap
+    env:
+      INVISIBLE_PLAYWRIGHT_CACHE_DIR: /home/runner/.cache/invisible-playwright
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install Xvfb (hidden display for the browser)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libdbus-glib-1-2
+
+      - name: Install Python packages
+        run: pip install invisible-playwright==0.14.0 pymongo==4.18.1
+
+      - name: Cache browser (262 MB download)
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/invisible-playwright
+          key: invisible-firefox-0.14.0
+
+      - name: Download browser if not cached
+        run: python -m invisible_playwright fetch
+
+      - name: Check prices
+        run: python index.py
+        env:
+          CASIO_EMAIL: ${{ secrets.CASIO_EMAIL }}
+          CASIO_PASSWORD: ${{ secrets.CASIO_PASSWORD }}
+          CASIO_EMAIL_2: ${{ secrets.CASIO_EMAIL_2 }}
+          CASIO_PASSWORD_2: ${{ secrets.CASIO_PASSWORD_2 }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
