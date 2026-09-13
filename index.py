@@ -209,26 +209,28 @@ def main():
             time.sleep(random.uniform(1, MAX_DELAY))
 
     db = mongo.watches
-    previous = {d["_id"]: d for d in db.find({}, {"price": 1, "discount_percentage": 1})}
+    previous = {d["_id"]: d for d in db.find({}, {"updated_at": 0})}
     log.info("Loaded %d watches from the last run", len(previous))
     now = datetime.now(timezone.utc)
     writes, drops, alerts, new_offers = [], 0, 0, []
 
     for w in watches:
         discount = round((w["mrp"] - w["price"]) / w["mrp"] * 100, 1) if w["mrp"] > w["price"] else 0
+        old = previous.get(w["handle"])
         doc = {
             "name": w["name"],
             "model": w["model"],
             "price": w["price"],
+            # lowest/highest price ever seen; docs saved before these fields existed start from their last price
+            "min_price": min(w["price"], old.get("min_price", old["price"])) if old else w["price"],
+            "max_price": max(w["price"], old.get("max_price", old["price"])) if old else w["price"],
             "mrp": w["mrp"],
             "is_offer_price": discount > 0,
             "discount_percentage": discount,
             "image_url": "https:" + w["image"] if w["image"].startswith("//") else w["image"],
             "url": f"https://casiostore.bhawar.com/products/{w['handle']}",
             "collection": w["collection"],
-            "updated_at": now,
         }
-        old = previous.get(w["handle"])
         if old and w["price"] < old["price"]:
             drops += 1
             log.warning("PRICE DROP %s: Rs %s -> Rs %s %s", w["model"], f"{old['price']:,.0f}", f"{w['price']:,.0f}", doc["url"])
@@ -237,11 +239,14 @@ def main():
             log.warning("ALERT %.0f%% OFF %s: Rs %s (MRP Rs %s) %s", discount, w["model"], f"{w['price']:,.0f}", f"{w['mrp']:,.0f}", doc["url"])
         if discount > (old or {}).get("discount_percentage", 0):  # newly on offer, or a bigger discount than last run
             new_offers.append(doc)
-        writes.append(ReplaceOne({"_id": w["handle"]}, doc, upsert=True))
+        if not old or any(old.get(k) != v for k, v in doc.items()):  # skip the write when nothing changed
+            writes.append(ReplaceOne({"_id": w["handle"]}, doc | {"updated_at": now}, upsert=True))
 
     if writes:
         result = db.bulk_write(writes)
-        log.info("Saved to MongoDB: %d updated, %d new", result.modified_count, result.upserted_count)
+        log.info("Saved to MongoDB: %d updated, %d new, %d unchanged", result.modified_count, result.upserted_count, len(watches) - len(writes))
+    else:
+        log.info("No changes, nothing written to MongoDB")
     offers = sum(w["mrp"] > w["price"] for w in watches)
     log.info("%d watches, %d on offer, %d price drops, %d alerts (>= %d%% off), %d new offers", len(watches), offers, drops, alerts, ALERT_DISCOUNT, len(new_offers))
 

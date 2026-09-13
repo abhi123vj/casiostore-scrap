@@ -69,22 +69,24 @@ A public repository's logs are public too, so the script never logs account emai
 
 Database: `casio_price_info`
 
-**`watches`** has one document per watch, replaced on every run. `_id` is the product's URL handle.
+**`watches`** has one document per watch, rewritten only when one of its fields changes. `_id` is the product's URL handle.
 
 | Field | Example |
 |---|---|
 | `name` | `CASIO EDIFICE EFB-730D-2AVUDF BLUE ANALOG DIAL ...` |
 | `model` | `GA-V01A-8A` |
 | `price` | `8047` |
+| `min_price` | `7499` (lowest price seen) |
+| `max_price` | `11495` (highest price seen) |
 | `mrp` | `11495` |
 | `is_offer_price` | `true` |
 | `discount_percentage` | `30.0` |
 | `image_url` | `https://casiostore.bhawar.com/cdn/shop/files/...` |
 | `url` | `https://casiostore.bhawar.com/products/...` |
 | `collection` | `g-shock` or `edifice-watches` |
-| `updated_at` | time of the run (UTC) |
+| `updated_at` | last time any field changed (UTC) |
 
-Only the latest price is kept, not a price history.
+Only the latest, lowest and highest prices are kept, not a full price history.
 
 **`sessions`** has one document per store account, with `_id` `casiostore:<email>`. It holds the saved login cookies and `saved_at`. These cookies work like a login to the account, so limit who can access the database.
 
