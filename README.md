@@ -54,7 +54,7 @@ On Linux, also install Xvfb, which the hidden browser needs: `sudo apt install x
 
 ## Run on GitHub Actions
 
-[.github/workflows/price-check.yml](.github/workflows/price-check.yml) runs the check at :03, :18, :33 and :48 past every hour (UTC). You can also start it by hand from the **Actions** tab with **Run workflow**.
+[.github/workflows/price-check.yml](.github/workflows/price-check.yml) runs the check every 15 minutes (UTC). You can also start it by hand from the **Actions** tab with **Run workflow**.
 
 1. Push this project to a GitHub repository.
 2. Add all 7 variables above under **Settings → Secrets and variables → Actions → New repository secret**. With the GitHub CLI you can upload them all from `.env` at once: `gh secret set -f .env`.

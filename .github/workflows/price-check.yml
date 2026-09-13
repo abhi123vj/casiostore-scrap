@@ -2,7 +2,7 @@ name: Casio price check
 
 on:
   schedule:
-    - cron: "3,18,33,48 * * * *" # every 15 min at :03, :18, :33, :48 (UTC), off the busy :00/:30 marks
+    - cron: "*/15 * * * *" # every 15 min (UTC); GitHub may still delay or skip runs under load
   workflow_dispatch: # "Run workflow" button for manual runs
 
 concurrency:
