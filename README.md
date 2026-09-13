@@ -54,7 +54,7 @@ On Linux, also install Xvfb, which the hidden browser needs: `sudo apt install x
 
 ## Run on GitHub Actions
 
-[.github/workflows/price-check.yml](.github/workflows/price-check.yml) runs the check every 15 minutes (UTC). You can also start it by hand from the **Actions** tab with **Run workflow**.
+[.github/workflows/price-check.yml](.github/workflows/price-check.yml) is started every 15 minutes by [cron-job.org](https://cron-job.org), which calls GitHub's workflow dispatch API with a fine-grained token (Actions: read and write). GitHub's own schedule only delays or skips short intervals, so the built-in cron runs hourly at :07 (UTC) as a backup. You can also start it by hand from the **Actions** tab with **Run workflow**.
 
 1. Push this project to a GitHub repository.
 2. Add all 7 variables above under **Settings → Secrets and variables → Actions → New repository secret**. With the GitHub CLI you can upload them all from `.env` at once: `gh secret set -f .env`.
